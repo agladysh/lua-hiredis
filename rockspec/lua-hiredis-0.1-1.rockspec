@@ -4,11 +4,6 @@ source = {
    url = "git://github.com/agladysh/lua-hiredis.git",
    branch = "v0.1"
 }
-external_dependencies = {
-   HIREDIS = {
-     header = "hiredis.h",
-   }
-}
 description = {
    summary = "Bindings for hiredis Redis-client library",
    homepage = "http://github.com/agladysh/lua-hiredis",
@@ -24,11 +19,20 @@ build = {
       hiredis = {
          sources = {
             "src/lua-hiredis.c",
+
+            -- bundled hiredis code --
+            "lib/hiredis/net.c",
+            "lib/hiredis/async.c",
+            "lib/hiredis/dict.c",
+            "lib/hiredis/hiredis.c",
+            "lib/hiredis/sds.c"
          },
          incdirs = {
-            "src/"
-         },
-         libraries = { "hiredis" }
+            "src/",
+
+            -- bundled hiredis code --
+            "lib/hiredis/"
+         }
       }
    }
 }
