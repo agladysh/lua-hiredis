@@ -16,9 +16,11 @@ extern "C" {
 
 #include "hiredis.h"
 
-#define LUAHIREDIS_VERSION     "lua-hiredis 0.1.1"
+#define LUAHIREDIS_VERSION     "lua-hiredis 0.1"
 #define LUAHIREDIS_COPYRIGHT   "Copyright (C) 2011, lua-hiredis authors"
 #define LUAHIREDIS_DESCRIPTION "Bindings for hiredis Redis-client library"
+
+#define LUAHIREDIS_MT "lua-hiredis.connection"
 
 typedef struct luahiredis_Enum
 {
@@ -45,49 +47,99 @@ static const struct luahiredis_Enum Errors[] =
   { NULL, 0 }
 };
 
-static int lhiredis_command(lua_State * L)
+/* Call this only if error is already detected */
+static int push_error(lua_State * L, redisContext * pContext)
+{
+  lua_pushnil(L);
+  lua_pushstring(L, pContext->errstr);
+  lua_pushnumber(L, pContext->err);
+
+  return 3;
+}
+
+typedef struct luahiredis_Connection
+{
+  redisContext * pContext;
+} luahiredis_Connection;
+
+static int lconn_command(lua_State * L)
 {
   return 0; /* TODO */
 }
 
-static int lhiredis_append_command(lua_State * L)
+static int lconn_append_command(lua_State * L)
 {
   return 0; /* TODO */
 }
 
-static int lhiredis_get_reply(lua_State * L)
+static int lconn_get_reply(lua_State * L)
 {
   return 0; /* TODO */
 }
 
-static int lhiredis_close(lua_State * L)
+static int lconn_close(lua_State * L)
 {
   return 0; /* TODO */
 }
 
-#define lhiredis_gc lhiredis_close
+#define lconn_gc lconn_close
 
-static int lhiredis_tostring(lua_State * L)
+static int lconn_tostring(lua_State * L)
 {
   return 0; /* TODO */
 }
 
 static const luaL_reg M[] =
 {
-  { "command", lhiredis_command },
-  { "append_command", lhiredis_append_command },
-  { "get_reply", lhiredis_get_reply },
+  { "command", lconn_command },
+  { "append_command", lconn_append_command },
+  { "get_reply", lconn_get_reply },
 
-  { "__close", lhiredis_close },
-  { "__gc", lhiredis_gc },
-  { "__tostring", lhiredis_tostring },
+  { "close", lconn_close },
+  { "__gc", lconn_gc },
+  { "__tostring", lconn_tostring },
 
   { NULL, NULL }
 };
 
 static int lhiredis_connect(lua_State * L)
 {
-  return 0; /* TODO */
+  luahiredis_Connection * pResult = NULL;
+  redisContext * pContext = NULL;
+
+  const char * host = luaL_checkstring(L, 1);
+  int port = luaL_checkint(L, 2);
+
+  pContext = redisConnect(host, port);
+  if (!pContext)
+  {
+    /* Should not happen */
+    return luaL_error(L, "failed to create hiredis context");
+  }
+
+  if (pContext->err)
+  {
+    int result = push_error(L, pContext);
+
+    redisFree(pContext);
+    pContext = NULL;
+
+    return result;
+  }
+
+  pResult = lua_newuserdata(L, sizeof(luahiredis_Connection));
+  pResult->pContext = pContext;
+
+  if (luaL_newmetatable(L, LUAHIREDIS_MT))
+  {
+    luaL_register(L, NULL, M);
+    lua_pushvalue(L, -1);
+    lua_setfield(L, -2, "__index");
+  }
+
+  lua_setmetatable(L, -2);
+
+  return 1;
 }
 
 /* Lua module API */
