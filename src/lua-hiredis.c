@@ -3,11 +3,20 @@
 *                See copyright information in file COPYRIGHT.
 */
 
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
+#include <lua.h>
+#include <lauxlib.h>
+
+#if defined (__cplusplus)
+}
+#endif
+
 #define LUAHIREDIS_VERSION     "lua-hiredis 0.1.1"
 #define LUAHIREDIS_COPYRIGHT   "Copyright (C) 2011, lua-hiredis authors"
 #define LUAHIREDIS_DESCRIPTION "Bindings for hiredis Redis-client library"
-
-#include "lua-hiredis.h"
 
 typedef struct luahiredis_Enum
 {
