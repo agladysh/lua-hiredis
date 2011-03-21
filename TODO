@@ -1,0 +1,9 @@
+TODO:
+-----
+
+ -- Document current API.
+ -- Fix file headers.
+ -- Run splint all over it.
+ -- Bind whole API.
+ -- Write better tests.
+ -- Add a luajit.ffi binding
