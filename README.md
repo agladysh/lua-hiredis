@@ -3,4 +3,73 @@ lua-hiredis — Bindings for hiredis Redis-client library
 
 See the copyright information in the file named `COPYRIGHT`.
 
-This library is still in incubation stage, read the code for more information.
+API
+---
+
+* `hiredis.connect(host : string, port : number) : conn / nil, err, error_code`
+
+* `hiredis.unwrap_reply(reply) : reply / name, hiredis.REPLY_STATUS / nil, err`
+
+  * If `reply` is a `hiredis.REPLY_ERROR` object, returns `nil, reply.name`.
+  * If `reply` is a `hiredis.REPLY_STATUS` object,
+    returns `reply.name, hiredis.REPLY_STATUS`
+    (It is guaranteed that `reply.name` is not `nil` or `false`.)
+  * Returns `reply` itself otherwise
+    (note that `hiredis.REPLY_NIL` object is not unwrapped).
+
+* `conn:command(... : string) : reply / nil, err, error_code`
+
+* `conn:append_command(... : string) : (nothing)`
+
+* `conn:get_reply() : reply / nil, err, error_code`
+
+### Error-code
+
+Hiredis error codes (see docs), also available as `hiredis.ERR_<something>`:
+
+* `REDIS_ERR_IO` is `hiredis.ERR_IO`,
+* `REDIS_ERR_EOF` is `hiredis.ERR_EOF`,
+* `REDIS_ERR_PROTOCOL` is `hiredis.ERR_PROTOCOL`,
+* `REDIS_ERR_OTHER` is `hiredis.ERR_OTHER`.
+
+### Reply
+
+* `REDIS_REPLY_STATUS` is a const-object (see below)
+  with type `hiredis.REPLY_STATUS`.
+  Common status objects are available in hiredis module table:
+
+  * `hiredis.OK`
+  * `hiredis.QUEUED`
+  * `hiredis.PONG`
+
+* `REDIS_REPLY_ERROR` is a const-object with type `hiredis.REPLY_ERROR`.
+  Note that Redis server errors are returned as `REDIS_REPLY_ERROR` values,
+  not as `nil, err, error_code` triplet. See tests for example.
+
+* `REDIS_REPLY_INTEGER` is a Lua value of type `hiredis.REPLY_NUMBER`.
+
+* `REDIS_REPLY_NIL` is a const-object with type `hiredis.REPLY_NIL`.
+
+* `REDIS_REPLY_STRING` is a binary-safe Lua string.
+
+* `REDIS_REPLY_ARRAY` is a linear Lua table (nesting is supported).
+
+### Const-object
+
+Const-object is a table with fields `name` and `type`.
+
+There are three types of const-objects:
+
+  * `hiredis.REPLY_NIL`
+  * `hiredis.REPLY_ERROR`
+  * `hiredis.REPLY_STATUS`
+
+Use `hiredis.unwrap_reply()` to convert const-object to regular Lua value.
+
+Note: Unwrapping is not done automatically to make array reply handling
+more straightforward.
+
+More information
+----------------
+
+Read `test/test.lua` for examples. Read hiredis README for API motivation.
