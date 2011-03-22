@@ -22,6 +22,8 @@ extern "C" {
 
 #define LUAHIREDIS_CONN_MT "lua-hiredis.connection"
 
+#define LUAHIREDIS_MAXARGS (256)
+
 #define LUAHIREDIS_NIL_KEY "NIL"
 static const int NIL_TOKEN = 1; /* TODO: Is this the best solution possible? */
 
@@ -97,36 +99,14 @@ static int push_error(lua_State * L, redisContext * pContext)
   return 3;
 }
 
-/* TODO: How to get rid of allocations here? */
-
-static void destroy_args(
-    lua_State * L,
-    int nargs,
-    const char *** argv,
-    size_t ** argvlen
-  )
-{
-  void * alloc_ud = NULL;
-  lua_Alloc alloc_fn = lua_getallocf(L, &alloc_ud);
-
-  alloc_fn(alloc_ud, (void *)*argvlen, nargs * sizeof(size_t), 0UL);
-  *argvlen = NULL;
-
-  alloc_fn(alloc_ud, (void *)*argv, nargs * sizeof(const char *), 0UL);
-  *argv = NULL;
-}
-
-static int create_args(
+static int load_args(
     lua_State * L,
     redisContext * pContext,
     int idx, /* index of first argument */
-    const char *** argv,
-    size_t ** argvlen
+    const char ** argv,
+    size_t * argvlen
   )
 {
-  void * alloc_ud = NULL;
-  lua_Alloc alloc_fn = lua_getallocf(L, &alloc_ud);
-
   int nargs = lua_gettop(L) - idx + 1;
   int i = 0;
 
@@ -135,23 +115,9 @@ static int create_args(
     return luaL_error(L, "missing command name");
   }
 
-  *argv = (const char **)alloc_fn(
-      alloc_ud, NULL, 0UL, nargs * sizeof(const char *)
-    );
-  if (*argv == NULL)
+  if (nargs > LUAHIREDIS_MAXARGS)
   {
-    return luaL_error(L, "command: can't allocate argv buffer");
-  }
-
-  *argvlen = (size_t *)alloc_fn(
-      alloc_ud, NULL, 0UL, nargs * sizeof(size_t)
-    );
-  if (*argvlen == NULL)
-  {
-    alloc_fn(alloc_ud, *argv, nargs * sizeof(const char *), 0UL);
-    *argv = NULL;
-
-    return luaL_error(L, "command: can't allocate argvlen buffer");
+    return luaL_error(L, "too many arguments");
   }
 
   for (i = 0; i < nargs; ++i)
@@ -161,13 +127,11 @@ static int create_args(
 
     if (str == NULL)
     {
-      destroy_args(L, nargs, argv, argvlen);
-
       return luaL_argerror(L, idx + i, "expected a string or number value");
     }
 
-    (*argv)[i] = str;
-    (*argvlen)[i] = len;
+    argv[i] = str;
+    argvlen[i] = len;
   }
 
   return nargs;
@@ -258,9 +222,9 @@ static int lconn_command(lua_State * L)
 {
   redisContext * pContext = check_connection(L, 1);
 
-  const char ** argv = NULL;
-  size_t * argvlen = NULL;
-  int nargs = create_args(L, pContext, 2, &argv, &argvlen);
+  const char * argv[LUAHIREDIS_MAXARGS];
+  size_t argvlen[LUAHIREDIS_MAXARGS];
+  int nargs = load_args(L, pContext, 2, argv, argvlen);
 
   int nret = 0;
   int i = 0;
@@ -268,8 +232,6 @@ static int lconn_command(lua_State * L)
   redisReply * pReply = redisCommandArgv(pContext, nargs, argv, argvlen);
   if (pReply == NULL)
   {
-    destroy_args(L, nargs, &argv, &argvlen);
-
     /* TODO: Shouldn't we clear the context error state after this? */
     return push_error(L, pContext);
   }
@@ -278,8 +240,6 @@ static int lconn_command(lua_State * L)
 
   freeReplyObject(pReply);
   pReply = NULL;
-
-  destroy_args(L, nargs, &argv, &argvlen);
 
   return nret;
 }
