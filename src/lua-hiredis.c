@@ -16,16 +16,22 @@ extern "C" {
 
 #include "hiredis.h"
 
+#if 0
+  #define SPAM(a) printf a
+#else
+  #define SPAM(a) (void)0
+#endif
+
 #define LUAHIREDIS_VERSION     "lua-hiredis 0.1"
 #define LUAHIREDIS_COPYRIGHT   "Copyright (C) 2011, lua-hiredis authors"
 #define LUAHIREDIS_DESCRIPTION "Bindings for hiredis Redis-client library"
 
 #define LUAHIREDIS_CONN_MT "lua-hiredis.connection"
+#define LUAHIREDIS_CONST_MT "lua-hiredis.const"
 
 #define LUAHIREDIS_MAXARGS (256)
 
-#define LUAHIREDIS_NIL_KEY "NIL"
-static const int NIL_TOKEN = 1; /* TODO: Is this the best solution possible? */
+#define LUAHIREDIS_KEY_NIL "NIL"
 
 typedef struct luahiredis_Enum
 {
@@ -42,8 +48,67 @@ static void reg_enum(lua_State * L, const luahiredis_Enum * e)
   }
 }
 
-/* Error as a reply */
-#define REDIS_ERR_REPLY 255
+/* This is luaL_setfuncs() from Lua 5.2 alpha */
+static void setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
+  luaL_checkstack(L, nup, "too many upvalues");
+  for (; l && l->name; l++) {  /* fill the table with given functions */
+    int i;
+    for (i = 0; i < nup; i++)  /* copy upvalues to the top */
+      lua_pushvalue(L, -nup);
+    lua_pushcclosure(L, l->func, nup);  /* closure with those upvalues */
+    lua_setfield(L, -(nup + 2), l->name);
+  }
+  lua_pop(L, nup);  /* remove upvalues */
+}
+/* End of luaL_setfuncs() from Lua 5.2 alpha */
+
+static int lconst_tostring(lua_State * L)
+{
+  /*
+  * Assuming we have correct argument type.
+  * Should be reasonably safe, since this is a metamethod.
+  */
+  luaL_checktype(L, 1, LUA_TTABLE);
+  lua_getfield(L, 1, "name"); /* TODO: Do we need fancier representation? */
+
+  return 1;
+}
+
+/* const API */
+static const struct luaL_reg CONST_MT[] =
+{
+  { "__tostring", lconst_tostring },
+
+  { NULL, NULL }
+};
+
+static int push_new_const(
+    lua_State * L,
+    const char * name,
+    size_t name_len,
+    const char * type
+  )
+{
+  /* We trust that user would not change these values */
+  lua_createtable(L, 0, 2);
+  lua_pushlstring(L, name, name_len);
+  lua_setfield(L, -2, "name");
+  lua_pushstring(L, type);
+  lua_setfield(L, -2, "type");
+
+  if (luaL_newmetatable(L, LUAHIREDIS_CONST_MT))
+  {
+    luaL_register(L, NULL, CONST_MT);
+    lua_pushvalue(L, -1);
+    lua_setfield(L, -2, "__index");
+    lua_pushliteral(L, LUAHIREDIS_CONST_MT);
+    lua_setfield(L, -2, "__metatable");
+  }
+
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
 
 static const struct luahiredis_Enum Errors[] =
 {
@@ -51,7 +116,6 @@ static const struct luahiredis_Enum Errors[] =
   { "ERR_EOF",      REDIS_ERR_EOF },
   { "ERR_PROTOCOL", REDIS_ERR_PROTOCOL },
   { "ERR_OTHER",    REDIS_ERR_OTHER },
-  { "ERR_REPLY",    REDIS_ERR_REPLY },
 
   { NULL, 0 }
 };
@@ -139,83 +203,74 @@ static int load_args(
 
 static int push_reply(lua_State * L, redisReply * pReply)
 {
-  int nret = 0;
   int base = 0;
   int i = 0;
 
   switch(pReply->type)
   {
     case REDIS_REPLY_STATUS:
-      nret = 1;
-      lua_pushlstring(L, pReply->str, pReply->len);
+      lua_pushvalue(L, lua_upvalueindex(1)); /* M (module table) */
+
+      lua_pushlstring(L, pReply->str, pReply->len); /* status */
+      lua_gettable(L, -2); /* M[status] */
+
+      if (lua_isnil(L, -1)) /* Not bothering with metatables */
+      {
+        lua_pushlstring(L, pReply->str, pReply->len); /* status */
+        push_new_const(L, pReply->str, pReply->len, "status"); /* const */
+        lua_settable(L, -3); /* M[status] = const */
+
+        lua_pushlstring(L, pReply->str, pReply->len); /* status */
+        lua_gettable(L, -2); /* return M[status] */
+      }
+
       break;
 
     case REDIS_REPLY_ERROR:
-      nret = 3;
-      lua_pushnil(L);
-      lua_pushlstring(L, pReply->str, pReply->len);
-      lua_pushinteger(L, REDIS_ERR_REPLY);
+      /* Not caching errors, they are (hopefully) not that common */
+      push_new_const(L, pReply->str, pReply->len, "error");
       break;
 
     case REDIS_REPLY_INTEGER:
-      nret = 1;
       lua_pushinteger(L, pReply->integer);
       break;
 
     case REDIS_REPLY_NIL:
-      nret = 1;
-      /* TODO: Lazy. Make this overridable? */
-      lua_pushlightuserdata(L, (void *)&NIL_TOKEN);
+      lua_pushvalue(L, lua_upvalueindex(1)); /* module table */
+      lua_getfield(L, -1, LUAHIREDIS_KEY_NIL);
+      lua_remove(L, -2); /* module table */
       break;
 
     case REDIS_REPLY_STRING:
-      nret = 1;
       lua_pushlstring(L, pReply->str, pReply->len);
       break;
 
     case REDIS_REPLY_ARRAY:
-      nret = 1;
-
       lua_createtable(L, pReply->elements, 0);
       base = lua_gettop(L);
 
       for (i = 0; i < pReply->elements; ++i)
       {
         /*
-          Not checking for too deep recursion:
-          if we parsed the reply somehow,
-          we should be able to push it.
+        * Not controlling recursion depth:
+        * if we parsed the reply somehow,
+        * we hope to be able to push it.
         */
 
-        int n = push_reply(L, pReply->element[i]);
-        if (n != 1)
-        {
-          /* Probably there was an error */
-
-          /*
-            TODO: ?! Looks fragile and not robust.
-                  At least for MULTI/EXEC we probably
-                  want to get other command results.
-          */
-
-          lua_remove(L, base); /* Remove table, created above */
-          nret = n;
-
-          break;
-        }
-
+        push_reply(L, pReply->element[i]);
         lua_rawseti(L, -2, i + 1); /* Store sub-reply */
       }
       break;
 
     default: /* should not happen */
-      nret = 2;
-      lua_pushnil(L);
-      lua_pushliteral(L, "command: unknown reply type");
-      break;
+      return luaL_error(L, "command: unknown reply type: %d", pReply->type);
   }
 
-  return nret;
+  /*
+  * Always returning a single value.
+  * If changed, change REDIS_REPLY_ARRAY above.
+  */
+  return 1;
 }
 
 static int lconn_command(lua_State * L)
@@ -232,7 +287,7 @@ static int lconn_command(lua_State * L)
   redisReply * pReply = redisCommandArgv(pContext, nargs, argv, argvlen);
   if (pReply == NULL)
   {
-    /* TODO: Shouldn't we clear the context error state after this? */
+    /* TODO: Shouldn't we clear the context error state somehow after this? */
     return push_error(L, pContext);
   }
 
@@ -331,7 +386,10 @@ static int lhiredis_connect(lua_State * L)
 
   if (luaL_newmetatable(L, LUAHIREDIS_CONN_MT))
   {
-    luaL_register(L, NULL, M);
+    /* Module table to be set as upvalue */
+    lua_pushvalue(L, lua_upvalueindex(1));
+    setfuncs(L, M, 1);
+
     lua_pushvalue(L, -1);
     lua_setfield(L, -2, "__index");
   }
@@ -340,6 +398,11 @@ static int lhiredis_connect(lua_State * L)
 
   return 1;
 }
+
+static const struct luaL_reg E[] = /* Empty */
+{
+  { NULL, NULL }
+};
 
 /* Lua module API */
 static const struct luaL_reg R[] =
@@ -358,7 +421,7 @@ LUALIB_API int luaopen_hiredis(lua_State * L)
   /*
   * Register module
   */
-  luaL_register(L, "hiredis", R);
+  luaL_register(L, "hiredis", E);
 
   /*
   * Register module information
@@ -375,14 +438,28 @@ LUALIB_API int luaopen_hiredis(lua_State * L)
   /*
   * Register enums
   */
-
   reg_enum(L, Errors);
 
   /*
-  * Register NIL token
+  * Register constants
   */
-  lua_pushlightuserdata(L, (void *)&NIL_TOKEN);
-  lua_setfield(L, -2, LUAHIREDIS_NIL_KEY);
+  push_new_const(L, "NIL", 3, "nil");
+  lua_setfield(L, -2, LUAHIREDIS_KEY_NIL);
+
+  push_new_const(L, "OK", 2, "status");
+  lua_setfield(L, -2, "OK");
+
+  push_new_const(L, "QUEUED", 6, "status");
+  lua_setfield(L, -2, "QUEUED");
+
+  push_new_const(L, "PONG", 4, "status");
+  lua_setfield(L, -2, "PONG");
+
+  /*
+  * Register functions
+  */
+  lua_pushvalue(L, -1); /* Module table to be set as upvalue */
+  setfuncs(L, R, 1);
 
   return 1;
 }
