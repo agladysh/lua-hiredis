@@ -228,6 +228,20 @@ static int push_reply(lua_State * L, redisReply * pReply)
 
       if (lua_isnil(L, -1)) /* Not bothering with metatables */
       {
+        /*
+        * TODO: Following code is likely to be broken due to early binding
+        * (imagine that RETURN is a command that returns given string
+        * as a status):
+        *
+        *    assert(conn:command("RETURN", "FOO") == hiredis.FOO)
+        *
+        * Here hiredis.FOO would be nil before conn:command() is called.
+        *
+        * Note that this is not relevant to the current Redis implementation
+        * (that is 2.2 and before), since it seems that it wouldn't
+        * return any status code except OK, QUEUED or PONG,
+        * all of which are alread covered.
+        */
         lua_pushlstring(L, pReply->str, pReply->len); /* status */
         push_new_const(
             L, pReply->str, pReply->len, REDIS_REPLY_STATUS /* const */
