@@ -17,6 +17,8 @@ API
   * Returns `reply` itself otherwise
     (note that `hiredis.REPLY_NIL` object is not unwrapped).
 
+### Connection
+
 * `conn:command(... : string) : reply / nil, err, error_code`
 
 * `conn:append_command(... : string) : (nothing)`
