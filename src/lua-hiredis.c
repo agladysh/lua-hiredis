@@ -86,7 +86,12 @@ static int push_error(lua_State * L, redisContext * pContext)
 {
   /* TODO: Use errno if err is REDIS_ERR_IO */
   lua_pushnil(L);
-  lua_pushstring(L, pContext->errstr);
+  lua_pushstring(
+      L,
+      (pContext->errstr != NULL)
+        ? pContext->errstr
+        : "(lua-hiredis: no error message)" /* TODO: ?! */
+    );
   lua_pushnumber(L, pContext->err);
 
   return 3;
@@ -168,6 +173,87 @@ static int create_args(
   return nargs;
 }
 
+static int push_reply(lua_State * L, redisReply * pReply)
+{
+  int nret = 0;
+  int base = 0;
+  int i = 0;
+
+  switch(pReply->type)
+  {
+    case REDIS_REPLY_STATUS:
+      nret = 1;
+      lua_pushlstring(L, pReply->str, pReply->len);
+      break;
+
+    case REDIS_REPLY_ERROR:
+      nret = 3;
+      lua_pushnil(L);
+      lua_pushlstring(L, pReply->str, pReply->len);
+      lua_pushinteger(L, REDIS_ERR_REPLY);
+      break;
+
+    case REDIS_REPLY_INTEGER:
+      nret = 1;
+      lua_pushinteger(L, pReply->integer);
+      break;
+
+    case REDIS_REPLY_NIL:
+      nret = 1;
+      /* TODO: Lazy. Make this overridable? */
+      lua_pushlightuserdata(L, (void *)&NIL_TOKEN);
+      break;
+
+    case REDIS_REPLY_STRING:
+      nret = 1;
+      lua_pushlstring(L, pReply->str, pReply->len);
+      break;
+
+    case REDIS_REPLY_ARRAY:
+      nret = 1;
+
+      lua_createtable(L, pReply->elements, 0);
+      base = lua_gettop(L);
+
+      for (i = 0; i < pReply->elements; ++i)
+      {
+        /*
+          Not checking for too deep recursion:
+          if we parsed the reply somehow,
+          we should be able to push it.
+        */
+
+        int n = push_reply(L, pReply->element[i]);
+        if (n != 1)
+        {
+          /* Probably there was an error */
+
+          /*
+            TODO: ?! Looks fragile and not robust.
+                  At least for MULTI/EXEC we probably
+                  want to get other command results.
+          */
+
+          lua_remove(L, base); /* Remove table, created above */
+          nret = n;
+
+          break;
+        }
+
+        lua_rawseti(L, -2, i + 1); /* Store sub-reply */
+      }
+      break;
+
+    default: /* should not happen */
+      nret = 2;
+      lua_pushnil(L);
+      lua_pushliteral(L, "command: unknown reply type");
+      break;
+  }
+
+  return nret;
+}
+
 static int lconn_command(lua_State * L)
 {
   redisContext * pContext = check_connection(L, 1);
@@ -177,6 +263,7 @@ static int lconn_command(lua_State * L)
   int nargs = create_args(L, pContext, 2, &argv, &argvlen);
 
   int nret = 0;
+  int i = 0;
 
   redisReply * pReply = redisCommandArgv(pContext, nargs, argv, argvlen);
   if (pReply == NULL)
@@ -187,46 +274,7 @@ static int lconn_command(lua_State * L)
     return push_error(L, pContext);
   }
 
-  switch(pReply->type)
-  {
-    case REDIS_REPLY_STATUS:
-      lua_pushlstring(L, pReply->str, pReply->len);
-      nret = 1;
-      break;
-
-    case REDIS_REPLY_ERROR:
-      lua_pushnil(L);
-      lua_pushlstring(L, pReply->str, pReply->len);
-      lua_pushinteger(L, REDIS_ERR_REPLY);
-      nret = 3;
-      break;
-
-    case REDIS_REPLY_INTEGER:
-      lua_pushinteger(L, pReply->integer);
-      nret = 1;
-      break;
-
-    case REDIS_REPLY_NIL:
-      /* TODO: Lazy. Make this overridable? */
-      lua_pushlightuserdata(L, (void *)&NIL_TOKEN);
-      nret = 1;
-      break;
-
-    case REDIS_REPLY_STRING:
-      lua_pushlstring(L, pReply->str, pReply->len);
-      nret = 1;
-      break;
-
-    case REDIS_REPLY_ARRAY:
-      return luaL_error(L, "TODO: Implement");
-      break;
-
-    default: /* should not happen */
-      lua_pushnil(L);
-      lua_pushliteral(L, "command: unknown reply type");
-      nret = 2;
-      break;
-  }
+  nret = push_reply(L, pReply);
 
   freeReplyObject(pReply);
   pReply = NULL;
