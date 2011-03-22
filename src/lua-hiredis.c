@@ -86,14 +86,14 @@ static int push_new_const(
     lua_State * L,
     const char * name,
     size_t name_len,
-    const char * type
+    int type
   )
 {
   /* We trust that user would not change these values */
   lua_createtable(L, 0, 2);
   lua_pushlstring(L, name, name_len);
   lua_setfield(L, -2, "name");
-  lua_pushstring(L, type);
+  lua_pushinteger(L, type);
   lua_setfield(L, -2, "type");
 
   if (luaL_newmetatable(L, LUAHIREDIS_CONST_MT))
@@ -116,6 +116,18 @@ static const struct luahiredis_Enum Errors[] =
   { "ERR_EOF",      REDIS_ERR_EOF },
   { "ERR_PROTOCOL", REDIS_ERR_PROTOCOL },
   { "ERR_OTHER",    REDIS_ERR_OTHER },
+
+  { NULL, 0 }
+};
+
+static const struct luahiredis_Enum ReplyTypes[] =
+{
+  { "REPLY_STRING",  REDIS_REPLY_STRING },
+  { "REPLY_ARRAY",   REDIS_REPLY_ARRAY },
+  { "REPLY_INTEGER", REDIS_REPLY_INTEGER },
+  { "REPLY_NIL",     REDIS_REPLY_NIL },
+  { "REPLY_STATUS",  REDIS_REPLY_STATUS },
+  { "REPLY_ERROR",   REDIS_REPLY_ERROR },
 
   { NULL, 0 }
 };
@@ -217,7 +229,9 @@ static int push_reply(lua_State * L, redisReply * pReply)
       if (lua_isnil(L, -1)) /* Not bothering with metatables */
       {
         lua_pushlstring(L, pReply->str, pReply->len); /* status */
-        push_new_const(L, pReply->str, pReply->len, "status"); /* const */
+        push_new_const(
+            L, pReply->str, pReply->len, REDIS_REPLY_STATUS /* const */
+          );
         lua_settable(L, -3); /* M[status] = const */
 
         lua_pushlstring(L, pReply->str, pReply->len); /* status */
@@ -228,7 +242,7 @@ static int push_reply(lua_State * L, redisReply * pReply)
 
     case REDIS_REPLY_ERROR:
       /* Not caching errors, they are (hopefully) not that common */
-      push_new_const(L, pReply->str, pReply->len, "error");
+      push_new_const(L, pReply->str, pReply->len, REDIS_REPLY_ERROR);
       break;
 
     case REDIS_REPLY_INTEGER:
@@ -422,6 +436,81 @@ static int lhiredis_connect(lua_State * L)
   return 1;
 }
 
+static int lhiredis_unwrap_reply(lua_State * L)
+{
+  int type = 0;
+
+  luaL_checkany(L, 1);
+
+  if (!lua_istable(L, 1))
+  {
+    lua_pushvalue(L, 1);
+    return 1;
+  }
+
+  if (!lua_getmetatable(L, 1))
+  {
+    lua_pushvalue(L, 1);
+    return 1;
+  }
+
+  luaL_getmetatable(L, LUAHIREDIS_CONST_MT);
+  if (!lua_rawequal(L, -1, -2))
+  {
+    lua_pop(L, 2); /* both metatables */
+
+    lua_pushvalue(L, 1);
+    return 1;
+  }
+
+  lua_pop(L, 2); /* both metatables */
+
+  lua_getfield(L, 1, "type");
+  if (lua_type(L, -1) != LUA_TNUMBER)
+  {
+    lua_pop(L, 1); /* t.type */
+
+    lua_pushvalue(L, 1);
+    return 1;
+  }
+
+  type = lua_tonumber(L, -1);
+  lua_pop(L, 1); /* t.type */
+
+  if (type == REDIS_REPLY_STATUS)
+  {
+    lua_getfield(L, 1, "name");
+    if (!lua_isstring(L, -1))
+    {
+      /* We promised to users that this wouldn't be nil */
+      return luaL_error(L, "lua-hiredis internal error: bad const-object");
+    }
+
+    lua_pushinteger(L, REDIS_REPLY_STATUS);
+
+    return 2;
+  }
+  else if (type == REDIS_REPLY_ERROR)
+  {
+    lua_pushnil(L);
+
+    lua_getfield(L, 1, "name");
+    if (!lua_isstring(L, -1))
+    {
+      /* We promised to users that this wouldn't be nil */
+      return luaL_error(L, "lua-hiredis internal error: bad const-object");
+    }
+
+    return 2;
+  }
+
+  /* Note that NIL is not unwrapped */
+
+  lua_pushvalue(L, 1);
+
+  return 1;
+}
+
 static const struct luaL_reg E[] = /* Empty */
 {
   { NULL, NULL }
@@ -431,6 +520,7 @@ static const struct luaL_reg E[] = /* Empty */
 static const struct luaL_reg R[] =
 {
   { "connect", lhiredis_connect },
+  { "unwrap_reply", lhiredis_unwrap_reply },
 
   { NULL, NULL }
 };
@@ -462,20 +552,21 @@ LUALIB_API int luaopen_hiredis(lua_State * L)
   * Register enums
   */
   reg_enum(L, Errors);
+  reg_enum(L, ReplyTypes);
 
   /*
   * Register constants
   */
-  push_new_const(L, "NIL", 3, "nil");
+  push_new_const(L, "NIL", 3, REDIS_REPLY_NIL);
   lua_setfield(L, -2, LUAHIREDIS_KEY_NIL);
 
-  push_new_const(L, "OK", 2, "status");
+  push_new_const(L, "OK", 2, REDIS_REPLY_STATUS);
   lua_setfield(L, -2, "OK");
 
-  push_new_const(L, "QUEUED", 6, "status");
+  push_new_const(L, "QUEUED", 6, REDIS_REPLY_STATUS);
   lua_setfield(L, -2, "QUEUED");
 
-  push_new_const(L, "PONG", 4, "status");
+  push_new_const(L, "PONG", 4, REDIS_REPLY_STATUS);
   lua_setfield(L, -2, "PONG");
 
   /*

@@ -4,33 +4,39 @@ pcall(require, 'luarocks.require')
 
 local hiredis = require 'hiredis'
 
+local CACHED_ERR = nil
+
 --------------------------------------------------------------------------------
 
 assert(type(hiredis.NIL == "table"))
 assert(hiredis.NIL.name == "NIL")
-assert(hiredis.NIL.type == "nil")
+assert(hiredis.NIL.type == hiredis.REPLY_NIL)
 assert(tostring(hiredis.NIL) == "NIL")
+assert(type(assert(getmetatable(hiredis.NIL))) == "string")
 
 --------------------------------------------------------------------------------
 
 assert(type(hiredis.OK == "table"))
 assert(hiredis.OK.name == "OK")
-assert(hiredis.OK.type == "status")
+assert(hiredis.OK.type == hiredis.REPLY_STATUS)
 assert(tostring(hiredis.OK) == "OK")
+assert(getmetatable(hiredis.OK) == getmetatable(hiredis.NIL))
 
 --------------------------------------------------------------------------------
 
 assert(type(hiredis.QUEUED== "table"))
 assert(hiredis.QUEUED.name == "QUEUED")
-assert(hiredis.QUEUED.type == "status")
+assert(hiredis.QUEUED.type == hiredis.REPLY_STATUS)
 assert(tostring(hiredis.QUEUED) == "QUEUED")
+assert(getmetatable(hiredis.QUEUED) == getmetatable(hiredis.NIL))
 
 --------------------------------------------------------------------------------
 
 assert(type(hiredis.PONG== "table"))
 assert(hiredis.PONG.name == "PONG")
-assert(hiredis.PONG.type == "status")
+assert(hiredis.PONG.type == hiredis.REPLY_STATUS)
 assert(tostring(hiredis.PONG) == "PONG")
+assert(getmetatable(hiredis.PONG) == getmetatable(hiredis.NIL))
 
 --------------------------------------------------------------------------------
 
@@ -57,9 +63,11 @@ assert(NIL == hiredis.NIL)
 --------------------------------------------------------------------------------
 
 local err = assert(conn:command("SET"))
-assert(err.type == "error")
+assert(err.type == hiredis.REPLY_ERROR)
 assert(err.name == "ERR wrong number of arguments for 'set' command")
 assert(tostring(err) == "ERR wrong number of arguments for 'set' command")
+assert(getmetatable(err) == getmetatable(hiredis.NIL))
+CACHED_ERR = err
 
 --------------------------------------------------------------------------------
 
@@ -87,7 +95,7 @@ assert(conn:command("MULTI"))
 assert(assert(conn:command("GET", "MYKEY1")) == hiredis.QUEUED)
 
 local err = assert(conn:command("SET"))
-assert(err.type == "error")
+assert(err.type == hiredis.REPLY_ERROR)
 assert(err.name == "ERR wrong number of arguments for 'set' command")
 assert(tostring(err) == "ERR wrong number of arguments for 'set' command")
 
@@ -111,7 +119,7 @@ assert(assert(conn:command("INCR", "MYKEY2")) == hiredis.QUEUED)
 local t = assert(conn:command("EXEC"))
 
 assert(t[1] == hiredis.OK)
-assert(t[2].type == "error")
+assert(t[2].type == hiredis.REPLY_ERROR)
 assert(
     t[2].name == "ERR Operation against a key holding the wrong kind of value"
   )
@@ -132,7 +140,7 @@ assert(assert(conn:get_reply()) == hiredis.QUEUED) -- INCR
 local t = assert(conn:get_reply()) -- EXEC
 
 assert(t[1] == hiredis.OK)
-assert(t[2].type == "error")
+assert(t[2].type == hiredis.REPLY_ERROR)
 assert(
     t[2].name == "ERR Operation against a key holding the wrong kind of value"
   )
@@ -143,6 +151,68 @@ assert(t[3] == 2)
 conn:close()
 conn:close() -- double close check
 conn = nil
+
+--------------------------------------------------------------------------------
+
+local pack = function(...) return { n = select("#", ...), ... } end
+
+do
+  local r = pack(hiredis.unwrap_reply(nil))
+  assert(r.n == 1)
+  assert(r[1] == nil)
+end
+
+do
+  local r = pack(hiredis.unwrap_reply(true))
+  assert(r.n == 1)
+  assert(r[1] == true)
+end
+
+do
+  local r = pack(hiredis.unwrap_reply(false))
+  assert(r.n == 1)
+  assert(r[1] == false)
+end
+
+do
+  local r = pack(hiredis.unwrap_reply(math.pi))
+  assert(r.n == 1)
+  assert(r[1] == math.pi)
+end
+
+do
+  local r = pack(hiredis.unwrap_reply("42"))
+  assert(r.n == 1)
+  assert(r[1] == "42")
+end
+
+do
+  local t = { type = hiredis.REPLY_STATUS, name = "OK" }
+  local r = pack(hiredis.unwrap_reply(t))
+  assert(r.n == 1)
+  assert(r[1] == t) -- no unwrap
+end
+
+do
+  local r = pack(hiredis.unwrap_reply(hiredis.NIL))
+  assert(r.n == 1)
+  assert(r[1] == hiredis.NIL) -- no unwrap
+end
+
+do
+  local r = pack(hiredis.unwrap_reply(hiredis.OK))
+  assert(r.n == 2)
+  assert(r[1] == "OK")
+  assert(r[2] == hiredis.REPLY_STATUS)
+end
+
+do
+  local r = pack(hiredis.unwrap_reply(assert(CACHED_ERR)))
+  assert(r.n == 2)
+  assert(r[1] == nil)
+  assert(r[2] == "ERR wrong number of arguments for 'set' command")
+  assert(r[2] == CACHED_ERR.name)
+end
 
 --------------------------------------------------------------------------------
 
