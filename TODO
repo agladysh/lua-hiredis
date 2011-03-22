@@ -7,3 +7,4 @@ TODO:
  -- Bind whole API.
  -- Write better tests.
  -- Add a luajit.ffi binding
+ -- hiredis.NIL (and value on REDIS_REPLY_NIL) should have __tostring.
