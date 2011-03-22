@@ -303,14 +303,37 @@ static int lconn_append_command(lua_State * L)
 {
   redisContext * pContext = check_connection(L, 1);
 
-  return 0; /* TODO */
+  const char * argv[LUAHIREDIS_MAXARGS];
+  size_t argvlen[LUAHIREDIS_MAXARGS];
+  int nargs = load_args(L, pContext, 2, argv, argvlen);
+
+  redisAppendCommandArgv(pContext, nargs, argv, argvlen);
+
+  return 0;
 }
 
 static int lconn_get_reply(lua_State * L)
 {
   redisContext * pContext = check_connection(L, 1);
 
-  return 0; /* TODO */
+  int nret = 0;
+  int i = 0;
+
+  redisReply * pReply = NULL;
+
+  int ok = redisGetReply(pContext, (void **)&pReply);
+  if (ok != REDIS_OK || pReply == NULL)
+  {
+    /* TODO: Shouldn't we clear the context error state somehow after this? */
+    return push_error(L, pContext);
+  }
+
+  nret = push_reply(L, pReply);
+
+  freeReplyObject(pReply);
+  pReply = NULL;
+
+  return nret;
 }
 
 static int lconn_close(lua_State * L)
