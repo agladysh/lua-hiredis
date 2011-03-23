@@ -2,9 +2,8 @@ TODO:
 -----
 
  -- Document current API.
- -- Fix file headers.
  -- Run splint all over it.
+ -- Run under valgrind
  -- Bind whole API.
  -- Write better tests.
  -- Add a luajit.ffi binding
- -- hiredis.NIL (and value on REDIS_REPLY_NIL) should have __tostring.
