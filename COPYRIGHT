@@ -2,7 +2,7 @@ lua-hiredis bindings license
 ----------------------------
 
 lua-hiredis bindings module code is licensed under the terms of the MIT license
-reproduced below. This means that lua-inih is free software and can be used
+reproduced below. This means that lua-hiredis is free software and can be used
 for both academic and commercial purposes at absolutely no cost.
 
 Note that hiredis library itself (not included) is licensed under BSD.
