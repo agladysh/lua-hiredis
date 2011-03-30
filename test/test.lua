@@ -148,6 +148,63 @@ assert(t[3] == 2)
 
 --------------------------------------------------------------------------------
 
+assert(hiredis.unwrap_reply(assert(conn:command("DEL", "MYSET1"))))
+assert(hiredis.unwrap_reply(assert(conn:command("DEL", "MYSET2"))))
+assert(hiredis.unwrap_reply(assert(conn:command("SADD", "MYSET1", "A"))))
+assert(hiredis.unwrap_reply(assert(conn:command("SADD", "MYSET1", "B"))))
+local res = assert(
+    hiredis.unwrap_reply(assert(conn:command("SDIFF", "MYSET1", "MYSET2")))
+  )
+
+assert(type(res) == "table")
+assert(#res == 2)
+assert(res[1] == "A")
+assert(res[2] == "B")
+
+--------------------------------------------------------------------------------
+
+assert(hiredis.unwrap_reply(assert(conn:command("MULTI"))))
+assert(hiredis.unwrap_reply(assert(conn:command("DEL", "MYSET1"))))
+assert(hiredis.unwrap_reply(assert(conn:command("DEL", "MYSET2"))))
+assert(hiredis.unwrap_reply(assert(conn:command("SADD", "MYSET1", "A"))))
+assert(hiredis.unwrap_reply(assert(conn:command("SADD", "MYSET1", "B"))))
+assert(hiredis.unwrap_reply(assert(conn:command("SDIFF", "MYSET1", "MYSET2"))))
+local res = assert(hiredis.unwrap_reply(assert(conn:command("EXEC"))))
+
+assert(type(res) == "table")
+assert(#res == 5)
+local res2 = res[5]
+assert(type(res2) == "table")
+assert(res2[1] == "A")
+assert(res2[2] == "B")
+
+--------------------------------------------------------------------------------
+
+conn:append_command("MULTI")
+conn:append_command("DEL", "MYSET1")
+conn:append_command("DEL", "MYSET2")
+conn:append_command("SADD", "MYSET1", "A")
+conn:append_command("SADD", "MYSET1", "B")
+conn:append_command("SDIFF", "MYSET1", "MYSET2")
+conn:append_command("EXEC")
+
+assert(hiredis.unwrap_reply(assert(conn:get_reply()))) -- multi
+assert(hiredis.unwrap_reply(assert(conn:get_reply()))) -- del
+assert(hiredis.unwrap_reply(assert(conn:get_reply()))) -- del
+assert(hiredis.unwrap_reply(assert(conn:get_reply()))) -- sadd
+assert(hiredis.unwrap_reply(assert(conn:get_reply()))) -- sadd
+assert(hiredis.unwrap_reply(assert(conn:get_reply()))) -- sdiff
+local res = assert(hiredis.unwrap_reply(assert(conn:get_reply()))) -- exec
+
+assert(type(res) == "table")
+assert(#res == 5)
+local res2 = res[5]
+assert(type(res2) == "table")
+assert(res2[1] == "A")
+assert(res2[2] == "B")
+
+--------------------------------------------------------------------------------
+
 conn:close()
 conn:close() -- double close check
 conn = nil
