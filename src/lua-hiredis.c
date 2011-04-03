@@ -216,7 +216,7 @@ static int load_args(
 static int push_reply(lua_State * L, redisReply * pReply)
 {
   int base = 0;
-  int i = 0;
+  unsigned int i = 0;
 
   switch(pReply->type)
   {
@@ -310,9 +310,10 @@ static int lconn_command(lua_State * L)
   int nargs = load_args(L, pContext, 2, argv, argvlen);
 
   int nret = 0;
-  int i = 0;
 
-  redisReply * pReply = redisCommandArgv(pContext, nargs, argv, argvlen);
+  redisReply * pReply = (redisReply *)redisCommandArgv(
+      pContext, nargs, argv, argvlen
+    );
   if (pReply == NULL)
   {
     /* TODO: Shouldn't we clear the context error state somehow after this? */
@@ -345,7 +346,6 @@ static int lconn_get_reply(lua_State * L)
   redisContext * pContext = check_connection(L, 1);
 
   int nret = 0;
-  int i = 0;
 
   redisReply * pReply = NULL;
 
@@ -383,7 +383,7 @@ static int lconn_close(lua_State * L)
 
 static int lconn_tostring(lua_State * L)
 {
-  redisContext * pContext = check_connection(L, 1);
+  /* redisContext * pContext = */check_connection(L, 1);
 
   /* TODO: Provide more information? */
   lua_pushliteral(L, "lua-hiredis.connection");
@@ -432,7 +432,9 @@ static int lhiredis_connect(lua_State * L)
     return result;
   }
 
-  pResult = lua_newuserdata(L, sizeof(luahiredis_Connection));
+  pResult = (luahiredis_Connection *)lua_newuserdata(
+      L, sizeof(luahiredis_Connection)
+    );
   pResult->pContext = pContext;
 
   if (luaL_newmetatable(L, LUAHIREDIS_CONN_MT))
