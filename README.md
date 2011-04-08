@@ -25,6 +25,8 @@ API
 
 * `conn:get_reply() : reply / nil, err, error_code`
 
+* `conn:close() : (nothing)`
+
 ### Error-code
 
 Hiredis error codes (see docs), also available as `hiredis.ERR_<something>`:
