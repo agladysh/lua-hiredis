@@ -1,3 +1,11 @@
+Version 0.1.1 (2011-04-09)
+==========================
+
+Bugfix release.
+
+  * Fixed bug with Lua data stack handling in STATUS replies.
+    (Affected MULTI/EXEC queries mostly.)
+
 Version 0.1 (2011-03-25)
 ========================
 
