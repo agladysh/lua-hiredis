@@ -215,8 +215,7 @@ static int load_args(
 
 static int push_reply(lua_State * L, redisReply * pReply)
 {
-  int base = 0;
-  unsigned int i = 0;
+  /* int base = lua_gettop(L); */
 
   switch(pReply->type)
   {
@@ -276,8 +275,10 @@ static int push_reply(lua_State * L, redisReply * pReply)
       break;
 
     case REDIS_REPLY_ARRAY:
+    {
+      unsigned int i = 0;
+
       lua_createtable(L, pReply->elements, 0);
-      base = lua_gettop(L);
 
       for (i = 0; i < pReply->elements; ++i)
       {
@@ -291,10 +292,18 @@ static int push_reply(lua_State * L, redisReply * pReply)
         lua_rawseti(L, -2, i + 1); /* Store sub-reply */
       }
       break;
+    }
 
     default: /* should not happen */
       return luaL_error(L, "command: unknown reply type: %d", pReply->type);
   }
+
+  /*
+  if (lua_gettop(L) != base + 1)
+  {
+    return luaL_error(L, "pushreplystackerror: actual %d expected %d base %d type %d", lua_gettop(L), base + 1, base, pReply->type);
+  }
+  */
 
   /*
   * Always returning a single value.
@@ -324,6 +333,9 @@ static int lconn_command(lua_State * L)
 
   nret = push_reply(L, pReply);
 
+  /*
+  * TODO: Not entirely safe: if above code throws error, reply object is leaked.
+  */
   freeReplyObject(pReply);
   pReply = NULL;
 
@@ -346,6 +358,7 @@ static int lconn_append_command(lua_State * L)
 static int lconn_get_reply(lua_State * L)
 {
   redisContext * pContext = check_connection(L, 1);
+  /* int base = lua_gettop(L); */
 
   int nret = 0;
 
@@ -358,8 +371,32 @@ static int lconn_get_reply(lua_State * L)
     return push_error(L, pContext);
   }
 
+  /*
+  if (lua_gettop(L) != base)
+  {
+    freeReplyObject(pReply);
+    return luaL_error(
+        L, "lhrstackerror1 actual %d expected %d", lua_gettop(L), base
+      );
+  }
+  */
+
   nret = push_reply(L, pReply);
 
+  /*
+  if (lua_gettop(L) != base + nret)
+  {
+    freeReplyObject(pReply);
+    return luaL_error(
+        L, "lhrstackerror2 actual %d expected %d base %d", lua_gettop(L),
+        base + nret, base
+      );
+  }
+  */
+
+  /*
+  * TODO: Not entirely safe: if above code throws error, reply object is leaked.
+  */
   freeReplyObject(pReply);
   pReply = NULL;
 
