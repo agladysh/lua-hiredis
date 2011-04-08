@@ -252,6 +252,8 @@ static int push_reply(lua_State * L, redisReply * pReply)
         lua_gettable(L, -2); /* return M[status] */
       }
 
+      lua_remove(L, -2); /* Remove module table */
+
       break;
 
     case REDIS_REPLY_ERROR:
