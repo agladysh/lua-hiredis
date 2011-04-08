@@ -91,6 +91,16 @@ assert(t[2] == "MYVALUE1")
 
 --------------------------------------------------------------------------------
 
+-- Based on actual bug scenario.
+assert(assert(conn:command("MULTI")) == hiredis.OK)
+assert(assert(conn:command("GET", "MYKEY1")) == hiredis.QUEUED)
+assert(assert(conn:command("SET", "MYKEY1", "MYVALUE2")) == hiredis.QUEUED)
+local t = assert(conn:command("EXEC"))
+assert(t[1] == "MYVALUE1")
+assert(t[2] == hiredis.OK)
+
+--------------------------------------------------------------------------------
+
 assert(conn:command("MULTI"))
 assert(assert(conn:command("GET", "MYKEY1")) == hiredis.QUEUED)
 
@@ -103,7 +113,7 @@ assert(assert(conn:command("GET", "MYKEY1")) == hiredis.QUEUED)
 local t = assert(conn:command("EXEC"))
 
 for i = 1, #t do
-  assert(t[i] == "MYVALUE1")
+  assert(t[i] == "MYVALUE2")
 end
 
 --------------------------------------------------------------------------------
