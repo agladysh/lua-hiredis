@@ -51,7 +51,7 @@ Hiredis error codes (see docs), also available as `hiredis.ERR_<something>`:
   Note that Redis server errors are returned as `REDIS_REPLY_ERROR` values,
   not as `nil, err, error_code` triplet. See tests for example.
 
-* `REDIS_REPLY_INTEGER` is a Lua value of type `hiredis.REPLY_NUMBER`.
+* `REDIS_REPLY_INTEGER` is a Lua number.
 
 * `REDIS_REPLY_NIL` is a const-object with type `hiredis.REPLY_NIL`.
 
