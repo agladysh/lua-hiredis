@@ -5,6 +5,7 @@ Bugfix release.
 
   * Fixed bug with Lua data stack handling in STATUS replies.
     (Affected MULTI/EXEC queries mostly.)
+  * Updated bundled hiredis to v0.9.2-38-gd5b18b5
 
 Version 0.1 (2011-03-25)
 ========================
