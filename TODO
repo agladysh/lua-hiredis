@@ -10,4 +10,7 @@ TODO:
  -- Run under valgrind
  -- Bind whole API.
  -- Write better tests.
- -- Add a luajit.ffi binding
+ -- Add a luajit.ffi binding.
+ -- Do not leak reply object if Lua throws error during handling.
+ -- Double-check all Lua data stack manipulations.
+ -- Call luaL_checkstack() where appropriate.
