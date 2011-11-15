@@ -239,7 +239,7 @@ static int push_reply(lua_State * L, redisReply * pReply)
         * Note that this is not relevant to the current Redis implementation
         * (that is 2.2 and before), since it seems that it wouldn't
         * return any status code except OK, QUEUED or PONG,
-        * all of which are alread covered.
+        * all of which are already covered.
         */
         lua_pushlstring(L, pReply->str, pReply->len); /* status */
         push_new_const(
