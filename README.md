@@ -60,9 +60,9 @@ Hiredis error codes (see docs), also available as `hiredis.ERR_<something>`:
 
   Examples:
 
-      assert(conn:command("PING") == hiredis.status.PONG)
-      assert(conn:command("SET", "NAME", "lua-hiredis") == hiredis.status.OK)
-      assert(conn:command("TYPE", "NAME") == hiredis.status.string)
+        assert(conn:command("PING") == hiredis.status.PONG)
+        assert(conn:command("SET", "NAME", "lua-hiredis") == hiredis.status.OK)
+        assert(conn:command("TYPE", "NAME") == hiredis.status.string)
 
 * `REDIS_REPLY_ERROR` is a const-object with type `hiredis.REPLY_ERROR`.
   Note that Redis server errors are returned as `REDIS_REPLY_ERROR` values,
