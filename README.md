@@ -57,6 +57,18 @@ Hiredis error codes (see docs), also available as `hiredis.ERR_<something>`:
   It is guaranteed that these object instances are always used
   for their corresponding statuses (so you can make a simple equality check).
 
+  For replies not listed above, check const-object type and value
+  directly, or just unwrap it with `hiredis.unwrap`.
+
+  Examples:
+
+      assert(conn:command("PING") == hiredis.PONG)
+
+      local reply = assert(conn:command("TYPE", "BADKEY"))
+      assert(reply.type == hiredis.REPLY_STATUS and reply.name == "none")
+
+      assert(assert(hiredis.unwrap(conn:command("TYPE", "NAME"))) == "string")
+
 * `REDIS_REPLY_ERROR` is a const-object with type `hiredis.REPLY_ERROR`.
   Note that Redis server errors are returned as `REDIS_REPLY_ERROR` values,
   not as `nil, err, error_code` triplet. See tests for example.
