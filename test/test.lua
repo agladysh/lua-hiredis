@@ -57,8 +57,26 @@ assert(assert(conn:command("GET", "MYKEY")) == "MYVALUE")
 
 --------------------------------------------------------------------------------
 
+local T = assert(conn:command("TYPE", "MYKEY"))
+assert(type(T) == "table")
+assert(T.type == hiredis.REPLY_STATUS)
+assert(T.name == "string")
+
+assert(hiredis.unwrap_reply(T) == "string")
+
+--------------------------------------------------------------------------------
+
 local NIL = assert(conn:command("GET", "BADKEY"))
 assert(NIL == hiredis.NIL)
+
+--------------------------------------------------------------------------------
+
+local T = assert(conn:command("TYPE", "BADKEY2"))
+assert(type(T) == "table")
+assert(T.type == hiredis.REPLY_STATUS)
+assert(T.name == "none")
+
+assert(hiredis.unwrap_reply(T) == "none")
 
 --------------------------------------------------------------------------------
 
