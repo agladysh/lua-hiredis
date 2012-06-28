@@ -225,6 +225,8 @@ static int push_reply(lua_State * L, redisReply * pReply)
 
       if (lua_isnil(L, -1)) /* Not bothering with metatables */
       {
+        lua_pop(L, 1); /* Pop nil */
+
         /*
         * TODO: Following code is likely to be broken due to early binding
         * (imagine that RETURN is a command that returns given string
