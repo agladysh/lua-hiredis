@@ -215,7 +215,7 @@ static int load_args(
 
 static int push_reply(lua_State * L, redisReply * pReply)
 {
-  switch(pReply->type)
+  switch (pReply->type)
   {
     case REDIS_REPLY_STATUS:
       lua_pushvalue(L, lua_upvalueindex(1)); /* M (module table) */
