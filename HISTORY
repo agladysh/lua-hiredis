@@ -1,9 +1,16 @@
-Version 0.1.3 (to be released)
-==============================
+Version 0.2 (2012-07-31)
+========================
 
-Maitenance release.
+Bugfix release with minor features.
 
-  * Updated bundled hiredis to v0.10.1-21-g7bc9f54
+  * Fixed `TYPE` command
+  * Introduced `hiredis.status` table to hold reply statuses
+  * Following constants are deprecated in favor of their `hiredis.status`
+    counterparts and will eventually be removed:
+      *  `hiredis.OK`
+      *  `hiredis.QUEUED`
+      *  `hiredis.PONG`
+  * Updated bundled hiredis to v0.10.1-34-gf2ddeea
 
 Version 0.1.2 (2011-06-17)
 ==========================
