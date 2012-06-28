@@ -50,24 +50,19 @@ Hiredis error codes (see docs), also available as `hiredis.ERR_<something>`:
   with type `hiredis.REPLY_STATUS`.
   Common status objects are available in hiredis module table:
 
-  * `hiredis.OK`
-  * `hiredis.QUEUED`
-  * `hiredis.PONG`
+  * `hiredis.status.OK`
+  * `hiredis.status.QUEUED`
+  * `hiredis.status.PONG`
 
   It is guaranteed that these object instances are always used
   for their corresponding statuses (so you can make a simple equality check).
-
-  For replies not listed above, check const-object type and value
-  directly, or just unwrap it with `hiredis.unwrap`.
+  The same is true for any other object in `hiredis.status` table.
 
   Examples:
 
-      assert(conn:command("PING") == hiredis.PONG)
-
-      local reply = assert(conn:command("TYPE", "BADKEY"))
-      assert(reply.type == hiredis.REPLY_STATUS and reply.name == "none")
-
-      assert(assert(hiredis.unwrap(conn:command("TYPE", "NAME"))) == "string")
+      assert(conn:command("PING") == hiredis.status.PONG)
+      assert(conn:command("SET", "NAME", "lua-hiredis") == hiredis.status.OK)
+      assert(conn:command("TYPE", "NAME") == hiredis.status.string)
 
 * `REDIS_REPLY_ERROR` is a const-object with type `hiredis.REPLY_ERROR`.
   Note that Redis server errors are returned as `REDIS_REPLY_ERROR` values,
@@ -95,6 +90,19 @@ Use `hiredis.unwrap_reply()` to convert const-object to regular Lua value.
 
 Note: Unwrapping is not done automatically to make array reply handling
 more straightforward.
+
+Deprecated features
+-------------------
+
+For backwards compatibility following status const-objects are aliased
+in the `hiredis` module table:
+
+  * `hiredis.OK = hiredis.status.OK`
+  * `hiredis.QUEUED = hiredis.status.QUEUED`
+  * `hiredis.PONG = hiredis.status.PONG`
+
+These aliases will eventually be removed in one of future releases,
+so, please, update your code to use `hiredis.status.*` instead.
 
 More information
 ----------------

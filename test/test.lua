@@ -16,27 +16,36 @@ assert(type(assert(getmetatable(hiredis.NIL))) == "string")
 
 --------------------------------------------------------------------------------
 
-assert(type(hiredis.OK == "table"))
-assert(hiredis.OK.name == "OK")
-assert(hiredis.OK.type == hiredis.REPLY_STATUS)
-assert(tostring(hiredis.OK) == "OK")
-assert(getmetatable(hiredis.OK) == getmetatable(hiredis.NIL))
+assert(type(hiredis.status.OK == "table"))
+assert(hiredis.status.OK.name == "OK")
+assert(hiredis.status.OK.type == hiredis.REPLY_STATUS)
+assert(tostring(hiredis.status.OK) == "OK")
+assert(getmetatable(hiredis.status.OK) == getmetatable(hiredis.NIL))
+
+-- deprecated backwards compatibility
+assert(hiredis.OK == hiredis.status.OK)
 
 --------------------------------------------------------------------------------
 
-assert(type(hiredis.QUEUED== "table"))
-assert(hiredis.QUEUED.name == "QUEUED")
-assert(hiredis.QUEUED.type == hiredis.REPLY_STATUS)
-assert(tostring(hiredis.QUEUED) == "QUEUED")
-assert(getmetatable(hiredis.QUEUED) == getmetatable(hiredis.NIL))
+assert(type(hiredis.status.QUEUED == "table"))
+assert(hiredis.status.QUEUED.name == "QUEUED")
+assert(hiredis.status.QUEUED.type == hiredis.REPLY_STATUS)
+assert(tostring(hiredis.status.QUEUED) == "QUEUED")
+assert(getmetatable(hiredis.status.QUEUED) == getmetatable(hiredis.NIL))
+
+-- deprecated backwards compatibility
+assert(hiredis.QUEUED == hiredis.status.QUEUED)
 
 --------------------------------------------------------------------------------
 
-assert(type(hiredis.PONG== "table"))
-assert(hiredis.PONG.name == "PONG")
-assert(hiredis.PONG.type == hiredis.REPLY_STATUS)
-assert(tostring(hiredis.PONG) == "PONG")
-assert(getmetatable(hiredis.PONG) == getmetatable(hiredis.NIL))
+assert(type(hiredis.status.PONG == "table"))
+assert(hiredis.status.PONG.name == "PONG")
+assert(hiredis.status.PONG.type == hiredis.REPLY_STATUS)
+assert(tostring(hiredis.status.PONG) == "PONG")
+assert(getmetatable(hiredis.status.PONG) == getmetatable(hiredis.NIL))
+
+-- deprecated backwards compatibility
+assert(hiredis.PONG == hiredis.status.PONG)
 
 --------------------------------------------------------------------------------
 
@@ -48,7 +57,7 @@ local conn = assert(hiredis.connect("localhost", 6379))
 
 --------------------------------------------------------------------------------
 
-assert(conn:command("PING") == hiredis.PONG)
+assert(conn:command("PING") == hiredis.status.PONG)
 
 --------------------------------------------------------------------------------
 
@@ -63,6 +72,7 @@ assert(T.type == hiredis.REPLY_STATUS)
 assert(T.name == "string")
 
 assert(hiredis.unwrap_reply(T) == "string")
+assert(T == hiredis.status.string)
 
 --------------------------------------------------------------------------------
 
@@ -77,6 +87,7 @@ assert(T.type == hiredis.REPLY_STATUS)
 assert(T.name == "none")
 
 assert(hiredis.unwrap_reply(T) == "none")
+assert(T == hiredis.status.none)
 
 --------------------------------------------------------------------------------
 
@@ -100,34 +111,38 @@ end
 
 --------------------------------------------------------------------------------
 
-assert(assert(conn:command("MULTI")) == hiredis.OK)
-assert(assert(conn:command("SET", "MYKEY1", "MYVALUE1")) == hiredis.QUEUED)
-assert(assert(conn:command("GET", "MYKEY1")) == hiredis.QUEUED)
+assert(assert(conn:command("MULTI")) == hiredis.status.OK)
+assert(
+    assert(conn:command("SET", "MYKEY1", "MYVALUE1")) == hiredis.status.QUEUED
+  )
+assert(assert(conn:command("GET", "MYKEY1")) == hiredis.status.QUEUED)
 local t = assert(conn:command("EXEC"))
-assert(t[1] == hiredis.OK)
+assert(t[1] == hiredis.status.OK)
 assert(t[2] == "MYVALUE1")
 
 --------------------------------------------------------------------------------
 
 -- Based on actual bug scenario.
-assert(assert(conn:command("MULTI")) == hiredis.OK)
-assert(assert(conn:command("GET", "MYKEY1")) == hiredis.QUEUED)
-assert(assert(conn:command("SET", "MYKEY1", "MYVALUE2")) == hiredis.QUEUED)
+assert(assert(conn:command("MULTI")) == hiredis.status.OK)
+assert(assert(conn:command("GET", "MYKEY1")) == hiredis.status.QUEUED)
+assert(
+    assert(conn:command("SET", "MYKEY1", "MYVALUE2")) == hiredis.status.QUEUED
+  )
 local t = assert(conn:command("EXEC"))
 assert(t[1] == "MYVALUE1")
-assert(t[2] == hiredis.OK)
+assert(t[2] == hiredis.status.OK)
 
 --------------------------------------------------------------------------------
 
 assert(conn:command("MULTI"))
-assert(assert(conn:command("GET", "MYKEY1")) == hiredis.QUEUED)
+assert(assert(conn:command("GET", "MYKEY1")) == hiredis.status.QUEUED)
 
 local err = assert(conn:command("SET"))
 assert(err.type == hiredis.REPLY_ERROR)
 assert(err.name == "ERR wrong number of arguments for 'set' command")
 assert(tostring(err) == "ERR wrong number of arguments for 'set' command")
 
-assert(assert(conn:command("GET", "MYKEY1")) == hiredis.QUEUED)
+assert(assert(conn:command("GET", "MYKEY1")) == hiredis.status.QUEUED)
 local t = assert(conn:command("EXEC"))
 
 for i = 1, #t do
@@ -138,15 +153,15 @@ end
 
 assert(conn:command("MULTI"))
 
-assert(assert(conn:command("SET", "MYKEY2", 1)) == hiredis.QUEUED)
+assert(assert(conn:command("SET", "MYKEY2", 1)) == hiredis.status.QUEUED)
 
 -- Wrong value type
-assert(assert(conn:command("SADD", "MYKEY1", "MYVAL")) == hiredis.QUEUED)
+assert(assert(conn:command("SADD", "MYKEY1", "MYVAL")) == hiredis.status.QUEUED)
 
-assert(assert(conn:command("INCR", "MYKEY2")) == hiredis.QUEUED)
+assert(assert(conn:command("INCR", "MYKEY2")) == hiredis.status.QUEUED)
 local t = assert(conn:command("EXEC"))
 
-assert(t[1] == hiredis.OK)
+assert(t[1] == hiredis.status.OK)
 assert(t[2].type == hiredis.REPLY_ERROR)
 assert(
     t[2].name == "ERR Operation against a key holding the wrong kind of value"
@@ -161,13 +176,13 @@ conn:append_command("SADD", "MYKEY1", "MYVAL")
 conn:append_command("INCR", "MYKEY2")
 conn:append_command("EXEC")
 
-assert(assert(conn:get_reply()) == hiredis.OK) -- MULTI
-assert(assert(conn:get_reply()) == hiredis.QUEUED) -- SET
-assert(assert(conn:get_reply()) == hiredis.QUEUED) -- SADD
-assert(assert(conn:get_reply()) == hiredis.QUEUED) -- INCR
+assert(assert(conn:get_reply()) == hiredis.status.OK) -- MULTI
+assert(assert(conn:get_reply()) == hiredis.status.QUEUED) -- SET
+assert(assert(conn:get_reply()) == hiredis.status.QUEUED) -- SADD
+assert(assert(conn:get_reply()) == hiredis.status.QUEUED) -- INCR
 local t = assert(conn:get_reply()) -- EXEC
 
-assert(t[1] == hiredis.OK)
+assert(t[1] == hiredis.status.OK)
 assert(t[2].type == hiredis.REPLY_ERROR)
 assert(
     t[2].name == "ERR Operation against a key holding the wrong kind of value"
@@ -285,7 +300,7 @@ do
 end
 
 do
-  local r = pack(hiredis.unwrap_reply(hiredis.OK))
+  local r = pack(hiredis.unwrap_reply(hiredis.status.OK))
   assert(r.n == 2)
   assert(r[1] == "OK")
   assert(r[2] == hiredis.REPLY_STATUS)
