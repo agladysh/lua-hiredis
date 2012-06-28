@@ -6,7 +6,7 @@ See the copyright information in the file named `COPYRIGHT`.
 Status of the project
 ---------------------
 
-The lua-hiredis module is pretty stable. It is heavily used in production 
+The lua-hiredis module is pretty stable. It is heavily used in production
 under high load by the author and team. There are still some things to do
 (see TODO file) in the feature completeness field, this is why the module
 is not 1.0 yet. But all the features necessary for regular usage are here.
