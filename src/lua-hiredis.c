@@ -26,8 +26,8 @@ extern "C" {
 #define LUAHIREDIS_COPYRIGHT   "Copyright (C) 2011, lua-hiredis authors"
 #define LUAHIREDIS_DESCRIPTION "Bindings for hiredis Redis-client library"
 
-#define LUAHIREDIS_CONN_MT "lua-hiredis.connection"
-#define LUAHIREDIS_CONST_MT "lua-hiredis.const"
+#define LUAHIREDIS_CONN_MT   "lua-hiredis.connection"
+#define LUAHIREDIS_CONST_MT  "lua-hiredis.const"
 
 #define LUAHIREDIS_MAXARGS (256)
 
