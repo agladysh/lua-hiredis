@@ -9,7 +9,7 @@ Note that hiredis library itself (included for convenience) is licensed under BS
 
 ===============================================================================
 
-Copyright (C) 2011 lua-hiredis bindings authors
+Copyright (C) 2011—2012 lua-hiredis bindings authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

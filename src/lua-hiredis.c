@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 #define LUAHIREDIS_VERSION     "lua-hiredis 0.1.3"
-#define LUAHIREDIS_COPYRIGHT   "Copyright (C) 2011, lua-hiredis authors"
+#define LUAHIREDIS_COPYRIGHT   "Copyright (C) 2011—2012, lua-hiredis authors"
 #define LUAHIREDIS_DESCRIPTION "Bindings for hiredis Redis-client library"
 
 #define LUAHIREDIS_CONN_MT   "lua-hiredis.connection"
