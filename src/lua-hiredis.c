@@ -215,8 +215,6 @@ static int load_args(
 
 static int push_reply(lua_State * L, redisReply * pReply)
 {
-  /* int base = lua_gettop(L); */
-
   switch(pReply->type)
   {
     case REDIS_REPLY_STATUS:
@@ -299,13 +297,6 @@ static int push_reply(lua_State * L, redisReply * pReply)
   }
 
   /*
-  if (lua_gettop(L) != base + 1)
-  {
-    return luaL_error(L, "pushreplystackerror: actual %d expected %d base %d type %d", lua_gettop(L), base + 1, base, pReply->type);
-  }
-  */
-
-  /*
   * Always returning a single value.
   * If changed, change REDIS_REPLY_ARRAY above.
   */
@@ -358,7 +349,6 @@ static int lconn_append_command(lua_State * L)
 static int lconn_get_reply(lua_State * L)
 {
   redisContext * pContext = check_connection(L, 1);
-  /* int base = lua_gettop(L); */
 
   int nret = 0;
 
@@ -371,28 +361,7 @@ static int lconn_get_reply(lua_State * L)
     return push_error(L, pContext);
   }
 
-  /*
-  if (lua_gettop(L) != base)
-  {
-    freeReplyObject(pReply);
-    return luaL_error(
-        L, "lhrstackerror1 actual %d expected %d", lua_gettop(L), base
-      );
-  }
-  */
-
   nret = push_reply(L, pReply);
-
-  /*
-  if (lua_gettop(L) != base + nret)
-  {
-    freeReplyObject(pReply);
-    return luaL_error(
-        L, "lhrstackerror2 actual %d expected %d base %d", lua_gettop(L),
-        base + nret, base
-      );
-  }
-  */
 
   /*
   * TODO: Not entirely safe: if above code throws error, reply object is leaked.
@@ -422,7 +391,7 @@ static int lconn_close(lua_State * L)
 
 static int lconn_tostring(lua_State * L)
 {
-  /* redisContext * pContext = */check_connection(L, 1);
+  check_connection(L, 1);
 
   /* TODO: Provide more information? */
   lua_pushliteral(L, "lua-hiredis.connection");
