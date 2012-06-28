@@ -76,6 +76,9 @@
 /* Flag that is set when the async context has one or more subscriptions. */
 #define REDIS_SUBSCRIBED 0x20
 
+/* Flag that is set when monitor mode is active */
+#define REDIS_MONITORING 0x40
+
 #define REDIS_REPLY_STRING 1
 #define REDIS_REPLY_ARRAY 2
 #define REDIS_REPLY_INTEGER 3
@@ -123,7 +126,7 @@ typedef struct redisReader {
     size_t pos; /* Buffer cursor */
     size_t len; /* Buffer length */
 
-    redisReadTask rstack[3];
+    redisReadTask rstack[4];
     int ridx; /* Index of current read task */
     void *reply; /* Temporary reply pointer */
 
