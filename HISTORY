@@ -1,3 +1,13 @@
+Version 0.2.1 (2012-12-29)
+==========================
+
+Bugfix release
+
+  * Fixed `hiredis.unwrap()` to properly handle `nil, error_message` arguments
+  * Added Lua stack space checks before pushes
+  * Updated bundled hiredis to v0.11.0
+  * Fixed README formatting
+
 Version 0.2 (2012-07-31)
 ========================
 
