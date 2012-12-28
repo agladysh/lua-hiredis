@@ -36,8 +36,8 @@
 #include <sys/time.h> /* for struct timeval */
 
 #define HIREDIS_MAJOR 0
-#define HIREDIS_MINOR 10
-#define HIREDIS_PATCH 1
+#define HIREDIS_MINOR 11
+#define HIREDIS_PATCH 0
 
 #define REDIS_ERR -1
 #define REDIS_OK 0
@@ -86,6 +86,8 @@
 #define REDIS_REPLY_STATUS 5
 #define REDIS_REPLY_ERROR 6
 
+#define REDIS_READER_MAX_BUF (1024*16)  /* Default max unused reader buffer. */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -125,8 +127,9 @@ typedef struct redisReader {
     char *buf; /* Read buffer */
     size_t pos; /* Buffer cursor */
     size_t len; /* Buffer length */
+    size_t maxbuf; /* Max length of unused buffer */
 
-    redisReadTask rstack[4];
+    redisReadTask rstack[9];
     int ridx; /* Index of current read task */
     void *reply; /* Temporary reply pointer */
 
