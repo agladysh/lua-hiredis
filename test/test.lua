@@ -201,8 +201,10 @@ local res = assert(
 
 assert(type(res) == "table")
 assert(#res == 2)
-assert(res[1] == "A")
-assert(res[2] == "B")
+assert(
+    (res[1] == "A" and res[2] == "B") or
+    (res[1] == "B" and res[2] == "A")
+  )
 
 --------------------------------------------------------------------------------
 
@@ -218,8 +220,10 @@ assert(type(res) == "table")
 assert(#res == 5)
 local res2 = res[5]
 assert(type(res2) == "table")
-assert(res2[1] == "A")
-assert(res2[2] == "B")
+assert(
+    (res2[1] == "A" and res2[2] == "B") or
+    (res2[1] == "B" and res2[2] == "A")
+  )
 
 --------------------------------------------------------------------------------
 
@@ -243,8 +247,10 @@ assert(type(res) == "table")
 assert(#res == 5)
 local res2 = res[5]
 assert(type(res2) == "table")
-assert(res2[1] == "A")
-assert(res2[2] == "B")
+assert(
+    (res2[1] == "A" and res2[2] == "B") or
+    (res2[1] == "B" and res2[2] == "A")
+  )
 
 --------------------------------------------------------------------------------
 
