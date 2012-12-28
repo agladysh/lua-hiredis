@@ -254,6 +254,60 @@ assert(
 
 --------------------------------------------------------------------------------
 
+do
+  local info = assert(hiredis.unwrap_reply(conn:command("INFO")))
+  local major, minor = info:find("redis_version:%s*(%d+)%.(%d+)")
+  if not major or not minor then
+    error("can't determine Redis version from INFO command")
+  elseif tonumber(major) < 2 or tonumber(minor) < 6 then
+    print("Redis version <2.6, skipping nested bulk test")
+  else
+    -- Based on a real bug scenario:
+    -- https://github.com/agladysh/lua-hiredis/issues/2
+    -- Note that hiredis C library has built in limitation
+    -- on bulk reply nesting.
+    do
+      local r = assert(
+          hiredis.unwrap_reply(
+              conn:command(
+                  "EVAL",
+                  [[return { 1, { 2, { 3 }, 4 }, 5 }]],
+                  0
+                )
+            )
+        )
+      assert(type(r) == "table")
+      assert(r[1] == 1)
+      assert(r[2][1] == 2)
+      assert(r[2][2][1] == 3)
+      assert(r[2][3] == 4)
+      assert(r[3] == 5)
+    end
+
+    do
+      local r = assert(
+          hiredis.unwrap_reply(
+              conn:command(
+                  "EVAL",
+                  [[return { 1, { 2, { 3, { 4 }, 5 }, 6 }, 7 }]],
+                  0
+                )
+            )
+        )
+      assert(type(r) == "table")
+      assert(r[1] == 1)
+      assert(r[2][1] == 2)
+      assert(r[2][2][1] == 3)
+      assert(r[2][2][2][1] == 4)
+      assert(r[2][2][3] == 5)
+      assert(r[2][3] == 6)
+      assert(r[3] == 7)
+    end
+  end
+end
+
+--------------------------------------------------------------------------------
+
 conn:close()
 conn:close() -- double close check
 conn = nil
