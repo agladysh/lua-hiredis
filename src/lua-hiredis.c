@@ -493,6 +493,13 @@ static int lhiredis_unwrap_reply(lua_State * L)
 
   if (!lua_istable(L, 1))
   {
+    if (lua_isnil(L, 1) && !lua_isnoneornil(L, 2))
+    {
+      lua_pushvalue(L, 1);
+      lua_pushvalue(L, 2);
+      return 2;
+    }
+
     lua_pushvalue(L, 1);
     return 1;
   }
