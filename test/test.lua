@@ -303,6 +303,23 @@ do
       assert(r[2][3] == 6)
       assert(r[3] == 7)
     end
+
+    do
+      local res, err = hiredis.unwrap_reply(
+          conn:command(
+              "EVAL",
+              [[
+                return
+                  { 1, { 2, { 3, { 4, { 5, { 6, { 7, { 8, {
+                  9
+                  }, 8 }, 7 }, 6 }, 5 }, 4 }, 3 }, 2 }, 1 }
+              ]],
+              0
+            )
+        )
+      assert(res == nil)
+      assert(err == "No support for nested multi bulk replies with depth > 7")
+    end
   end
 end
 
