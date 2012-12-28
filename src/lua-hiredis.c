@@ -306,6 +306,7 @@ static int push_reply(lua_State * L, redisReply * pReply)
         push_reply(L, pReply->element[i]);
         lua_rawseti(L, -2, i + 1); /* Store sub-reply */
       }
+
       break;
     }
 
@@ -489,6 +490,7 @@ static int lhiredis_unwrap_reply(lua_State * L)
   luaL_checkany(L, 1);
 
   luaL_checkstack(L, 3, "not enough stack to push reply");
+
   if (!lua_istable(L, 1))
   {
     lua_pushvalue(L, 1);
