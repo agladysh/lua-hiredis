@@ -76,6 +76,12 @@ assert(T == hiredis.status.string)
 
 --------------------------------------------------------------------------------
 
+local res, err = hiredis.unwrap_reply(nil, "err")
+assert(res == nil)
+assert(err == "err")
+
+--------------------------------------------------------------------------------
+
 local NIL = assert(conn:command("GET", "BADKEY"))
 assert(NIL == hiredis.NIL)
 
