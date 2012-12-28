@@ -44,6 +44,7 @@ static void reg_enum(lua_State * L, const luahiredis_Enum * e)
 {
   for ( ; e->name; ++e)
   {
+    luaL_checkstack(L, 1, "enum too large");
     lua_pushinteger(L, e->value);
     lua_setfield(L, -2, e->name);
   }
@@ -90,7 +91,10 @@ static int push_new_const(
     int type
   )
 {
+  luaL_checkstack(L, 3, "too many constants");
+
   /* We trust that user would not change these values */
+
   lua_createtable(L, 0, 2);
   lua_pushlstring(L, name, name_len);
   lua_setfield(L, -2, "name");
@@ -122,6 +126,8 @@ static int lstatus_index(lua_State * L)
       L, key, key_len, REDIS_REPLY_STATUS /* status */
     );
   lua_rawset(L, 1); /* t[key] = status */
+
+  luaL_checkstack(L, 1, "not enough stack");
 
   lua_pushlstring(L, key, key_len); /* Push the key again */
   lua_gettable(L, 1); /* return t[key] */
@@ -190,6 +196,7 @@ static redisContext * check_connection(lua_State * L, int idx)
 static int push_error(lua_State * L, redisContext * pContext)
 {
   /* TODO: Use errno if err is REDIS_ERR_IO */
+  luaL_checkstack(L, 3, "not enough stack to push error");
   lua_pushnil(L);
   lua_pushstring(
       L,
@@ -245,6 +252,8 @@ static int push_reply(lua_State * L, redisReply * pReply)
   switch (pReply->type)
   {
     case REDIS_REPLY_STATUS:
+      luaL_checkstack(L, 2, "not enough stack to push reply");
+
       lua_pushvalue(L, lua_upvalueindex(1)); /* M (module table) */
       lua_getfield(L, -1, "status"); /* status = M.status */
       lua_remove(L, -2); /* Remove module table from stack */
@@ -262,22 +271,27 @@ static int push_reply(lua_State * L, redisReply * pReply)
       break;
 
     case REDIS_REPLY_INTEGER:
+      luaL_checkstack(L, 1, "not enough stack to push reply");
       lua_pushinteger(L, pReply->integer);
       break;
 
     case REDIS_REPLY_NIL:
+      luaL_checkstack(L, 2, "not enough stack to push reply");
       lua_pushvalue(L, lua_upvalueindex(1)); /* module table */
       lua_getfield(L, -1, LUAHIREDIS_KEY_NIL);
       lua_remove(L, -2); /* module table */
       break;
 
     case REDIS_REPLY_STRING:
+      luaL_checkstack(L, 1, "not enough stack to push reply");
       lua_pushlstring(L, pReply->str, pReply->len);
       break;
 
     case REDIS_REPLY_ARRAY:
     {
       unsigned int i = 0;
+
+      luaL_checkstack(L, 2, "not enough stack to push reply");
 
       lua_createtable(L, pReply->elements, 0);
 
@@ -397,6 +411,7 @@ static int lconn_tostring(lua_State * L)
   check_connection(L, 1);
 
   /* TODO: Provide more information? */
+  luaL_checkstack(L, 1, "not enough stack to push reply");
   lua_pushliteral(L, "lua-hiredis.connection");
 
   return 1;
@@ -428,6 +443,7 @@ static int lhiredis_connect(lua_State * L)
   pContext = redisConnect(host, port);
   if (!pContext)
   {
+    luaL_checkstack(L, 2, "not enough stack to push error");
     lua_pushnil(L);
     lua_pushliteral(L, "failed to create hiredis context");
     return 2;
@@ -443,6 +459,7 @@ static int lhiredis_connect(lua_State * L)
     return result;
   }
 
+  luaL_checkstack(L, 1, "not enough stack to create connection");
   pResult = (luahiredis_Connection *)lua_newuserdata(
       L, sizeof(luahiredis_Connection)
     );
@@ -451,6 +468,8 @@ static int lhiredis_connect(lua_State * L)
   if (luaL_newmetatable(L, LUAHIREDIS_CONN_MT))
   {
     /* Module table to be set as upvalue */
+    luaL_checkstack(L, 1, "not enough stack to register connection MT");
+
     lua_pushvalue(L, lua_upvalueindex(1));
     setfuncs(L, M, 1);
 
@@ -469,6 +488,7 @@ static int lhiredis_unwrap_reply(lua_State * L)
 
   luaL_checkany(L, 1);
 
+  luaL_checkstack(L, 3, "not enough stack to push reply");
   if (!lua_istable(L, 1))
   {
     lua_pushvalue(L, 1);
