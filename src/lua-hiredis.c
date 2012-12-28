@@ -22,7 +22,7 @@ extern "C" {
   #define SPAM(a) (void)0
 #endif
 
-#define LUAHIREDIS_VERSION     "lua-hiredis 0.2"
+#define LUAHIREDIS_VERSION     "lua-hiredis 0.2.1"
 #define LUAHIREDIS_COPYRIGHT   "Copyright (C) 2011—2012, lua-hiredis authors"
 #define LUAHIREDIS_DESCRIPTION "Bindings for hiredis Redis-client library"
 
