@@ -436,18 +436,18 @@ static int lhiredis_connect(lua_State * L)
   luahiredis_Connection * pResult = NULL;
   redisContext * pContext = NULL;
 
-  const char * host = luaL_checkstring(L, 1);
-  int port = lua_tointeger(L, 2);
+  const char * host_or_socket = luaL_checkstring(L, 1);
 
-  /* TODO: Support Timeout, Unix and UnixTimeout flavors */
-  if (port)
+  /* TODO: Support Timeout and UnixTimeout flavors */
+  if (lua_isnoneornil(L, 2))
   {
-    pContext = redisConnect(host, port);
+    pContext = redisConnectUnix(host_or_socket);
   }
   else
   {
-    pContext = redisConnectUnix(host);
+    pContext = redisConnect(host_or_socket, luaL_checkint(L, 2));
   }
+
   if (!pContext)
   {
     luaL_checkstack(L, 2, "not enough stack to push error");
