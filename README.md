@@ -14,7 +14,9 @@ is not 1.0 yet. But all the features necessary for regular usage are here.
 API
 ---
 
-* `hiredis.connect(host : string, port : number) : conn / nil, err, error_code`
+* `hiredis.connect(host / socket : string, port : number) : conn / nil, err, error_code`
+
+  * If port is empty it will try to connect using a unix socket.
 
 * `hiredis.unwrap_reply(reply) : reply / name, hiredis.REPLY_STATUS / nil, err`
 
