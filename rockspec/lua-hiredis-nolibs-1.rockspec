@@ -27,7 +27,8 @@ build = {
          },
          incdirs = {
             "src/"
-         }
+         },
+         libraries = { "hiredis" }
       }
    }
 }
