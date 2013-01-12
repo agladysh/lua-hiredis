@@ -31,6 +31,7 @@ build = {
             "src/",
 
             -- bundled hiredis code --
+            "lib/",
             "lib/hiredis/"
          }
       }

@@ -14,7 +14,7 @@ extern "C" {
 }
 #endif
 
-#include "hiredis.h"
+#include "hiredis/hiredis.h"
 
 #if 0
   #define SPAM(a) printf a
