@@ -1,6 +1,7 @@
 TODO:
 -----
 
+ -- Make nolibs rockspec default, remove lib/*
  -- Document current API.
  -- Run splint all over it.
  -- Run under valgrind
