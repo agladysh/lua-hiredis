@@ -1,10 +1,6 @@
 TODO:
 -----
 
- -- hiredis.unwrap_reply should pass everything through without looking
-    if it is called with more than one argument,
-    so this would not lose an error:
-        hiredis.unwrap_reply(conn.command())
  -- Document current API.
  -- Run splint all over it.
  -- Run under valgrind
