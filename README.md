@@ -113,3 +113,5 @@ More information
 ----------------
 
 Read `test/test.lua` for examples. Read hiredis README for API motivation.
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/agladysh/lua-hiredis/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
