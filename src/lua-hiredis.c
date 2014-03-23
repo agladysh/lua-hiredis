@@ -77,7 +77,7 @@ static int lconst_tostring(lua_State * L)
 }
 
 /* const API */
-static const struct luaL_reg CONST_MT[] =
+static const struct luaL_Reg CONST_MT[] =
 {
   { "__tostring", lconst_tostring },
 
@@ -136,7 +136,7 @@ static int lstatus_index(lua_State * L)
 }
 
 /* status API */
-static const struct luaL_reg STATUS_MT[] =
+static const struct luaL_Reg STATUS_MT[] =
 {
   { "__index", lstatus_index },
 
@@ -418,7 +418,7 @@ static int lconn_tostring(lua_State * L)
   return 1;
 }
 
-static const luaL_reg M[] =
+static const luaL_Reg M[] =
 {
   { "command", lconn_command },
   { "append_command", lconn_append_command },
@@ -573,13 +573,13 @@ static int lhiredis_unwrap_reply(lua_State * L)
   return 1;
 }
 
-static const struct luaL_reg E[] = /* Empty */
+static const struct luaL_Reg E[] = /* Empty */
 {
   { NULL, NULL }
 };
 
 /* Lua module API */
-static const struct luaL_reg R[] =
+static const struct luaL_Reg R[] =
 {
   { "connect", lhiredis_connect },
   { "unwrap_reply", lhiredis_unwrap_reply },
