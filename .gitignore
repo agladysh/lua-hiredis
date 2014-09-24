@@ -9,3 +9,6 @@
 
 *.o
 *.so
+lib/hiredis/hiredis-example
+lib/hiredis/hiredis-test
+lib/hiredis/libhiredis.*

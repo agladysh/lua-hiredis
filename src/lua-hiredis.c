@@ -34,6 +34,22 @@ extern "C" {
 
 #define LUAHIREDIS_KEY_NIL "NIL"
 
+#if LUA_VERSION_NUM >= 502
+static void luaL_register(lua_State * L, const char * name, const luaL_Reg * l) 
+{
+  if (name) 
+  {
+    lua_newtable(L);
+    luaL_setfuncs(L, l, 0);
+    lua_pushvalue(L,-1);
+    lua_setglobal(L,name);
+  } else 
+  {
+    luaL_setfuncs(L,l,0);
+  }
+}
+#endif
+
 typedef struct luahiredis_Enum
 {
   const char * name;
