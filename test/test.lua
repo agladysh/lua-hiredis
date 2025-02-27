@@ -155,7 +155,7 @@ do
     a[#a + 1] = "SET"
   end
   -- Too many arguments
-  assert(pcall(conn.command, conn, unpack(a)) == false)
+  assert(pcall(conn.command, conn, table.unpack(a)) == false)
 end
 
 --------------------------------------------------------------------------------
