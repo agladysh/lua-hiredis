@@ -461,7 +461,7 @@ static int lhiredis_connect(lua_State * L)
   }
   else
   {
-    pContext = redisConnect(host_or_socket, luaL_checkint(L, 2));
+    pContext = redisConnect(host_or_socket, (int)luaL_checkinteger(L, 2));
   }
 
   if (!pContext)
